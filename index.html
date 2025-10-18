@@ -30,67 +30,70 @@
 
   <!-- jsPDF from CDN – no installation needed -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script>
-  // ----- SELECT A CARD ----------------------------------------------------
+<script>
+  // --------------------------------------------------------------
+  // 1️⃣  UI – card selection
+  // --------------------------------------------------------------
   const cardsDiv = document.getElementById('cards')
-  let chosen = null
+  let chosen = null                     // holds the selected card info
 
   cardsDiv.addEventListener('click', e => {
     const el = e.target.closest('.card')
     if (!el) return
+
+    // Deselect any previously‑selected card
     document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'))
+
+    // Mark the new one as selected
     el.classList.add('selected')
-    chosen = {id: el.dataset.id, label: el.textContent, bg: el.style.background}
+    chosen = {
+      id:    el.dataset.id,
+      label: el.textContent,
+      bg:    el.style.background          // colour string like "#ffeb3b"
+    }
+
+    // Enable the download button now that a card is chosen
     document.getElementById('download').disabled = false
   })
 
-  // ----- CREATE PDF -------------------------------------------------------
+  // --------------------------------------------------------------
+  // 2️⃣  PDF generation – exact credit‑card size (85.6 × 53.98 mm)
+  // --------------------------------------------------------------
   document.getElementById('download').addEventListener('click', () => {
-    if (!chosen) return
+    if (!chosen) return                     // safety guard
 
-    // ---- NEW: grab the custom text --------------------------------------
-    const customText = document.getElementById('customText').value.trim()
-    // ---------------------------------------------------------------------
+    // ----- Grab any custom text the user typed -----------------
+    const customText = document.getElementById('customText')
+                         .value.trim()     // empty string if nothing entered
 
-    const {jsPDF} = window.jspdf
+    // ----- jsPDF init – fixed size -----------------------------
+    const { jsPDF } = window.jspdf
+    const CARD_W = 85.6                      // width  in mm
+    const CARD_H = 53.98                     // height in mm
+    const doc = new jsPDF({ unit: 'mm', format: [CARD_W, CARD_H] })
 
-    // 1️⃣ Start with any preset (e.g., "a4") – we’ll replace the size next
-    const tmpDoc = new jsPDF({unit: 'mm', format: 'a4'})
+    // ----- Draw background colour --------------------------------
+    doc.setFillColor(chosen.bg)              // colour from the selected card
+    doc.rect(0, 0, CARD_W, CARD_H, 'F')      // fill the whole rectangle
 
-    // 2️⃣ Add a **new page** whose exact dimensions are the credit‑card size
-    //    This overrides the previous A4 page, guaranteeing the right aspect ratio.
-    const CARD_W = 85.6   // mm
-    const CARD_H = 53.98  // mm
-    tmpDoc.addPage([CARD_W, CARD_H], 'portrait')   // creates a fresh page
-
-    // 3️⃣ Remove the default (first) A4 page that jsPDF created automatically
-    //    The first page is index 1 (jsPDF pages are 1‑based). We delete it.
-    tmpDoc.deletePage(1)
-
-    const doc = tmpDoc   // now `doc` points to the correctly‑sized page
-
-    // ---------- DRAW BACKGROUND -----------------------------------------
-    doc.setFillColor(chosen.bg)                // colour from the selected card
-    doc.rect(0, 0, CARD_W, CARD_H, 'F')        // fill the whole rectangle
-
-    // ---------- MAIN LABEL (centered near the top) ----------------------
+    // ----- Main label (big, centred near the top) -------------
     doc.setTextColor('#000')
     doc.setFontSize(14)
-    doc.text(chosen.label, CARD_W / 2, 20, {align: 'center'})
+    doc.text(chosen.label, CARD_W / 2, 20, { align: 'center' })
 
-    // ---------- OPTIONAL CUSTOM TEXT (if the user typed something) ------
+    // ----- Optional custom text (smaller, under the label) -----
     if (customText) {
       doc.setFontSize(10)
-      doc.text(customText, CARD_W / 2, 30, {align: 'center'})
+      doc.text(customText, CARD_W / 2, 30, { align: 'center' })
     }
 
-    // ---------- RANDOM REDEMPTION CODE (bottom) ------------------------
+    // ----- Random redemption code (bottom) ----------------------
     const code = Math.random().toString(36).substr(2, 6).toUpperCase()
     doc.setFontSize(10)
-    doc.text('Code: ' + code, CARD_W / 2, CARD_H - 8, {align: 'center'})
+    doc.text('Code: ' + code, CARD_W / 2, CARD_H - 8, { align: 'center' })
 
-    // ---------- SAVE ----------------------------------------------------
-    doc.save(chosen.id + '_card.pdf')
+    // ----- Save the file -----------------------------------------
+    doc.save(`${chosen.id}_card.pdf`)
   })
 </script>
   <script>
