@@ -30,6 +30,70 @@
 
   <!-- jsPDF from CDN – no installation needed -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  // ----- SELECT A CARD ----------------------------------------------------
+  const cardsDiv = document.getElementById('cards')
+  let chosen = null
+
+  cardsDiv.addEventListener('click', e => {
+    const el = e.target.closest('.card')
+    if (!el) return
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'))
+    el.classList.add('selected')
+    chosen = {id: el.dataset.id, label: el.textContent, bg: el.style.background}
+    document.getElementById('download').disabled = false
+  })
+
+  // ----- CREATE PDF -------------------------------------------------------
+  document.getElementById('download').addEventListener('click', () => {
+    if (!chosen) return
+
+    // ---- NEW: grab the custom text --------------------------------------
+    const customText = document.getElementById('customText').value.trim()
+    // ---------------------------------------------------------------------
+
+    const {jsPDF} = window.jspdf
+
+    // 1️⃣ Start with any preset (e.g., "a4") – we’ll replace the size next
+    const tmpDoc = new jsPDF({unit: 'mm', format: 'a4'})
+
+    // 2️⃣ Add a **new page** whose exact dimensions are the credit‑card size
+    //    This overrides the previous A4 page, guaranteeing the right aspect ratio.
+    const CARD_W = 85.6   // mm
+    const CARD_H = 53.98  // mm
+    tmpDoc.addPage([CARD_W, CARD_H], 'portrait')   // creates a fresh page
+
+    // 3️⃣ Remove the default (first) A4 page that jsPDF created automatically
+    //    The first page is index 1 (jsPDF pages are 1‑based). We delete it.
+    tmpDoc.deletePage(1)
+
+    const doc = tmpDoc   // now `doc` points to the correctly‑sized page
+
+    // ---------- DRAW BACKGROUND -----------------------------------------
+    doc.setFillColor(chosen.bg)                // colour from the selected card
+    doc.rect(0, 0, CARD_W, CARD_H, 'F')        // fill the whole rectangle
+
+    // ---------- MAIN LABEL (centered near the top) ----------------------
+    doc.setTextColor('#000')
+    doc.setFontSize(14)
+    doc.text(chosen.label, CARD_W / 2, 20, {align: 'center'})
+
+    // ---------- OPTIONAL CUSTOM TEXT (if the user typed something) ------
+    if (customText) {
+      doc.setFontSize(10)
+      doc.text(customText, CARD_W / 2, 30, {align: 'center'})
+    }
+
+    // ---------- RANDOM REDEMPTION CODE (bottom) ------------------------
+    const code = Math.random().toString(36).substr(2, 6).toUpperCase()
+    doc.setFontSize(10)
+    doc.text('Code: ' + code, CARD_W / 2, CARD_H - 8, {align: 'center'})
+
+    // ---------- SAVE ----------------------------------------------------
+    doc.save(chosen.id + '_card.pdf')
+  })
+</script>
   <script>
     // ----- SELECT A CARD ----------------------------------------------------
     const cardsDiv = document.getElementById('cards')
